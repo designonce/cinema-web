@@ -1,12 +1,22 @@
 {
-  "$schema":"https://json-schema.org/draft/2020-12/schema",
-  "additionalProperties":false,
-  "properties":{
-    "artifact_version":{"type":"string"},
-    "builds":{"items":{"additionalProperties":false,"properties":{"backend":{"enum":["webgpu","webgl2"]},"catalog_hash":{"type":"string"},"entry":{"description":"Module path relative to this build's path, not the release root.","type":"string"},"input_kinds":{"items":{"type":"string"},"type":"array"},"level":{"enum":["A","B","C"]},"manifest":{"additionalProperties":false,"properties":{"bytes":{"minimum":0,"type":"integer"},"sha256":{"pattern":"^[0-9a-f]{64}$","type":"string"}},"required":["bytes","sha256"],"type":"object"},"path":{"type":"string"},"product":{"type":"string"},"profile":{"type":"string"},"protocol_version":{"minimum":1,"type":"integer"},"render_package_version":{"type":"object"},"requires":{"type":"object"},"transfer":{"type":"object"}},"required":["product","profile","level","backend","input_kinds","path","entry","requires","manifest","catalog_hash","protocol_version","render_package_version","transfer"],"type":"object"},"type":"array"},
-    "index_version":{"const":1},
-    "loader":{"const":"loader/choose.mjs"}
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The release checker enforces path safety, identity checks, uniqueness, and source-enabled kernel_execution/worker consistency in addition to this schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["index_version", "artifact_version", "loader", "builds"],
+  "properties": {
+    "index_version": {"const": 1},
+    "artifact_version": {"type": "string"},
+    "loader": {"const": "loader/choose.mjs"},
+    "builds": {"type": "array", "items": {"$ref": "#/$defs/build"}}
   },
-  "required":["index_version","artifact_version","loader","builds"],
-  "type":"object"
+  "$defs": {
+    "identity": {"type": "object", "additionalProperties": false, "required": ["bytes", "sha256"], "properties": {"bytes": {"type": "integer", "minimum": 0}, "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}},
+    "wasmRequires": {"type": "object", "additionalProperties": false, "required": ["wasm"], "properties": {"wasm": {"type": "boolean"}}},
+    "file": {"type": "object", "additionalProperties": false, "required": ["path", "stored", "decoded"], "properties": {"path": {"type": "string"}, "stored": {"$ref": "#/$defs/identity"}, "decoded": {"$ref": "#/$defs/identity"}}},
+    "variant": {"type": "object", "additionalProperties": false, "required": ["id", "runtime", "encoding", "requires", "path", "entry", "manifest", "transfer", "files"], "properties": {"id": {"enum": ["raw", "br", "js"]}, "runtime": {"enum": ["wasm", "js"]}, "encoding": {"enum": ["raw", "br"]}, "requires": {"$ref": "#/$defs/wasmRequires"}, "path": {"type": "string"}, "entry": {"type": "string"}, "manifest": {"$ref": "#/$defs/identity"}, "transfer": {"type": "object"}, "files": {"type": "object", "additionalProperties": {"$ref": "#/$defs/file"}}}},
+    "webgpuRequires": {"type": "object", "additionalProperties": false, "required": ["secure_context", "worker", "webgpu"], "properties": {"secure_context": {"const": true}, "worker": {"type": "boolean"}, "webgpu": {"type": "object", "additionalProperties": false, "required": ["features", "limits"], "properties": {"features": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}, "limits": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}}}}}},
+    "webgl2Requires": {"type": "object", "additionalProperties": false, "required": ["secure_context", "worker", "webgl2"], "properties": {"secure_context": {"const": true}, "worker": {"type": "boolean"}, "webgl2": {"type": "object", "additionalProperties": false, "required": ["min_samples"], "properties": {"min_samples": {"type": "integer", "minimum": 1}}}}},
+    "build": {"type": "object", "additionalProperties": false, "required": ["product", "profile", "level", "backend", "input_kinds", "path", "requires", "default_variant", "variants", "catalog_hash", "protocol_version", "render_package_version"], "properties": {"product": {"type": "string"}, "profile": {"type": "string"}, "level": {"enum": ["B", "C"]}, "backend": {"enum": ["webgpu", "webgl2"]}, "kernel_execution": {"enum": ["worker", "main"]}, "input_kinds": {"type": "array", "items": {"type": "string"}}, "path": {"type": "string"}, "requires": {"type": "object"}, "default_variant": {"type": "string"}, "variants": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/variant"}}, "catalog_hash": {"type": "string"}, "protocol_version": {"type": "integer", "minimum": 1}, "render_package_version": {"type": "object"}}, "allOf": [{"if": {"properties": {"input_kinds": {"contains": {"const": "step"}}}, "required": ["input_kinds"]}, "then": {"required": ["kernel_execution"]}, "else": {"not": {"required": ["kernel_execution"]}}}], "oneOf": [{"properties": {"level": {"const": "B"}, "backend": {"const": "webgpu"}, "requires": {"$ref": "#/$defs/webgpuRequires"}}}, {"properties": {"level": {"const": "C"}, "backend": {"const": "webgl2"}, "requires": {"$ref": "#/$defs/webgl2Requires"}}}]}
+  }
 }
