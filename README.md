@@ -9,9 +9,9 @@ Cinema uses three levels:
 - B uses WebGPU only when the index lists it.
 - C uses WebGL2.
 
-Version 0.2.2 contains raw B at `embed/web-basic-webgpu` and raw C at `embed/web-basic-webgl2`. It
-also contains the gzip C variant at `embed/web-basic-webgl2.gzip`. Each group has its own manifest
-and runtime files.
+Version 0.2.4 contains worker-enabled B and C builds, plus package-only B and C builds. Each build
+uses a `.gzip` variant so its renderer file stays below the 15 MB artifact limit. Each
+source-enabled build ships a checked worker that accepts STEP, STL, and OBJ bytes.
 
 ## URLs
 
@@ -41,6 +41,7 @@ This example loads a render package from the page origin. Replace `<version>` an
 
   const result = await loadViewer({
     inputKind: 'render-package',
+    createElement: true,
   });
   console.log({
     ok: result.ok,
@@ -50,7 +51,7 @@ This example loads a render package from the page origin. Replace `<version>` an
   });
   if (!result.ok) throw new Error(`loadViewer failed: ${result.reason}`);
 
-  const viewer = document.createElement('cinema-viewer');
+  const viewer = result.viewer;
   viewer.setAttribute('scene-mode', 'basic');
   viewer.addEventListener('model-loaded', event => console.log('model-loaded', event.detail));
   document.body.append(viewer);
@@ -88,23 +89,24 @@ The loader chooses B on a qualified WebGPU device. Otherwise, it tries C. To for
 of these calls with the same `loadViewer` import:
 
 ```js
-const result = await loadViewer({profile: 'web-basic-webgpu'}); // Only B.
+const result = await loadViewer({profile: 'web-basic-webgpu', createElement: true}); // Only B.
 if (!result.ok) console.log(result.reason, result.attempts);
 ```
 
 ```js
-const result = await loadViewer({profile: 'web-basic-webgl2'}); // Only C.
+const result = await loadViewer({profile: 'web-basic-webgl2', createElement: true}); // Only C.
 if (!result.ok) console.log(result.reason, result.attempts);
 ```
 
 To keep automatic selection but omit B, use `exclude`:
 
 ```js
-const result = await loadViewer({exclude: ['web-basic-webgpu']});
+const result = await loadViewer({exclude: ['web-basic-webgpu'], createElement: true});
 if (!result.ok) console.log(result.reason, result.attempts);
 ```
 
-To test B without a GPU, run headless Chrome with these flags (testing only):
+For software-adapter startup diagnostics, Chrome accepts these flags (testing only). Headless wgpu
+runs are not rendering validation; verify B rendering in a real browser.
 
 ```text
 --enable-unsafe-webgpu --enable-unsafe-swiftshader --use-webgpu-adapter=swiftshader --enable-skia-graphite --skia-graphite-dawn-backend=swiftshader
@@ -138,12 +140,24 @@ Each source-enabled group has `kernel_execution`, a profile, and `default_varian
 groups have no kernel mode. The loader defaults `kernelExecution` to `worker` and uses the group's
 default when `variant` is absent. It does not change mode or variant after a failure.
 
-When source packages are indexed, request `kernelExecution: 'worker'` for worker STEP. Request
-`kernelExecution: 'main'` for bundled STEP. A package-only group can be selected with either mode.
-An exact profile selects its source-enabled mode.
+For a model file, use
+`loadViewer({inputKind: format, kernelExecution: 'worker', createElement: true})`, where `format` is
+`step`, `stl`, `obj`, or `render-package`. Append `result.viewer`, await its `ready`, and call
+`result.viewer.models.load({source: {bytes: file}, format, label: file.name})`. For a specific
+level, add `profile: 'web-step-webgpu'` (B) or `profile: 'web-step-webgl2'` (C). For source files,
+serve the complete Pages release tree with CORS if the page is on another origin. The viewer tries a
+blob worker when a module worker cannot start. If both workers fail, it converts on the page. The
+load result reports `converter` as `worker`, `blob-worker`, or `main-thread`. Page conversion blocks
+the UI. Cancellation and deadlines can reject its result only after the synchronous call returns. A
+golf WASM trap on the page can stop the viewer. Asset or protocol mismatches raise `VersionSkew` and
+never select a fallback; a running worker's conversion failure is not replayed on the page. The
+converter accepts golf's STEP, ASCII or binary STL, and OBJ; it does not import GLB. See the npm
+README for a complete file-input example. Unknown formats raise `UnsupportedFormat` at `/format`;
+invalid supported files raise `ModelLoadFailed` at `/source/bytes`. A package-only group can be
+selected with either mode. An exact profile selects its source-enabled mode.
 
-A listed raw variant can later be absent from Pages. An explicit request then fails as unavailable
-or fetch failure. The loader does not select Brotli or another mode automatically.
+The loader does not select another variant after a fetch failure. A direct viewer import reads its
+compressed renderer identity from the release index.
 
 The loader selects a group before it imports the viewer. After import starts, it does not select
 another group. A `WorkerUnavailable` error from the viewer passes through unchanged.
@@ -167,8 +181,7 @@ those requests. A normal secure host can import Pages when its CSP permits the P
 `script-src` and `connect-src`.
 
 An agent with a shell and a tool that publishes supporting files can publish the gzip variant on the
-artifact origin. An agent with web chat only cannot use this procedure. Normal Pages hosting does
-not need gzip or an artifact.
+artifact origin. An agent with web chat only cannot use this procedure. Pages also serves gzip.
 
 ### Prepare the files
 
@@ -227,7 +240,14 @@ PY
 ```
 
 Publish the files at the same relative paths under `releases/<version>/`. Publish them as
-same-origin supporting files. Do not publish the raw 41,489,584-byte WASM file.
+same-origin supporting files. Do not publish a raw renderer WASM file.
+
+For source-file input instead of a prebuilt render package, select `web-step-webgl2` (or
+`web-step-webgpu` for B) in the index and download its complete manifest inventory, including the
+separate kernel WASM, worker entry, glue and snippets. Use `inputKind: 'step'`, `'stl'` or `'obj'`
+when loading the viewer and pass the file to `viewer.models.load`. No separate main-thread build or
+option is needed when Workers are unavailable. The page must still allow module loading and WASM
+compilation; this fallback cannot bypass the artifact host's CSP.
 
 The compressed WASM filename already ends in `.wasm`. Do not rename it. The loader fetches it as
 bytes and decompresses it. It does not import or compile the compressed bytes. Make sure that the
@@ -293,8 +313,8 @@ These are observations, not guarantees for every browser or artifact.
 
 - In a claude.ai artifact with Chrome 155, the gzip variant loaded and WebGL2 ran on the GPU.
 - In that artifact, native `DecompressionStream('brotli')` was unavailable. Gzip worked.
-- The raw release drew in headless Chrome 152 with SwiftShader flags.
-- The raw release drew in Firefox 158 with headless WebGL2 forced.
+- Earlier raw releases drew in headless Chrome 152 with SwiftShader flags and Firefox 158 with
+  headless WebGL2 forced.
 
 ## Index and pointer formats
 
@@ -302,10 +322,11 @@ Each release has `releases/<version>/index.json`. It is canonical JSON with `ind
 `artifact_version`, `loader`, and `builds`.
 
 A group has its logical identity, backend requirements, `default_variant`, and variants.
-Source-enabled groups also have `kernel_execution`. Package-only groups do not. The raw variant
-directory is the group's path (`embed/<profile>`). Every other variant is a sibling directory
-(`embed/<profile>.<variant-id>`). A variant has its runtime, encoding, WASM requirement, package
-path, entry, manifest identity, transfer report, and stored and decoded file identities.
+Source-enabled groups also have `kernel_execution`. Package-only groups do not. All builds in this
+release use `embed/<profile>.gzip`. A raw variant, if present in a future release, uses
+`embed/<profile>`. Other variants use `embed/<profile>.<variant-id>`. A variant has its runtime,
+encoding, WASM requirement, package path, entry, manifest identity, transfer report, and stored and
+decoded file identities.
 
 `channels/latest.json` is a discovery pointer. It is not a fixed dependency.
 
@@ -331,15 +352,13 @@ The loader uses these selection reason codes:
 - `variant_unavailable`
 - `viewer_load_failed`
 - `wasm_compile_blocked`
-- `worker_unavailable`
 
 `WorkerUnavailable` is separate: `loadViewer` returns it when the selected viewer module reports
-that its worker cannot be registered. It is not the `worker_unavailable` selection reason, which
-means the browser cannot provide a required worker before the viewer is loaded.
+that its worker cannot be registered and page conversion cannot start.
 
 ## npm delivery
 
-`@designonce/cinema-web@0.2.2` contains the release index, loader, and both build directories.
+`@designonce/cinema-web@0.2.4` contains the release index, loader, and both build directories.
 Import `loadViewer` from `@designonce/cinema-web` to select a build. Import
 `@designonce/cinema-web/webgpu` or `@designonce/cinema-web/webgl2` to use a viewer directly. Keep
 the package tree intact on a static host so relative URLs and SHA-256 checks work.
