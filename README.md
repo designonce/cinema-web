@@ -9,7 +9,7 @@ Cinema uses three levels:
 - B uses WebGPU only when the index lists it.
 - C uses WebGL2.
 
-Version 0.2.4 contains worker-enabled B and C builds, plus package-only B and C builds. Each build
+Version 0.2.5 contains worker-enabled B and C builds, plus package-only B and C builds. Each build
 uses a `.gzip` variant so its renderer file stays below the 15 MB artifact limit. Each
 source-enabled build ships a checked worker that accepts STEP, STL, and OBJ bytes.
 
@@ -358,7 +358,7 @@ that its worker cannot be registered and page conversion cannot start.
 
 ## npm delivery
 
-`@designonce/cinema-web@0.2.4` contains the release index, loader, and both build directories.
+`@designonce/cinema-web@0.2.5` contains the release index, loader, and both build directories.
 Import `loadViewer` from `@designonce/cinema-web` to select a build. Import
 `@designonce/cinema-web/webgpu` or `@designonce/cinema-web/webgl2` to use a viewer directly. Keep
 the package tree intact on a static host so relative URLs and SHA-256 checks work.
