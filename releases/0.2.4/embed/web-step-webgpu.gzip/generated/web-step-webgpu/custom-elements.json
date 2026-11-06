@@ -1,0 +1,201 @@
+{
+  "modules": [
+    {
+      "declarations": [
+        {
+          "attributes": [
+            {
+              "description": "Startup up axis, z or y.",
+              "name": "up-axis"
+            },
+            {
+              "description": "Startup scene mode; only basic.",
+              "name": "scene-mode"
+            },
+            {
+              "description": "Startup cache mode; only off.",
+              "name": "cache"
+            },
+            {
+              "description": "Per-element recovery byte budget.",
+              "name": "recovery-bytes"
+            },
+            {
+              "description": "Canvas right-click policy: camera (default) or browser. Live edits win in time order; removal resets to camera. Invalid values warn and retain the current policy.",
+              "name": "context-menu"
+            },
+            {
+              "description": "Permit a software WebGPU adapter for testing only; absent by default.",
+              "name": "allow-fallback-adapter"
+            }
+          ],
+          "customElement": true,
+          "events": [
+            {
+              "description": "The viewer finished startup. Fires once per connection.",
+              "name": "cinema-viewer-ready"
+            },
+            {
+              "description": "A startup or attribute warning that has no command.",
+              "name": "cinema-viewer-warning"
+            },
+            {
+              "description": "The viewer failed after startup. Fires once and no catalog event follows.",
+              "name": "cinema-viewer-failed"
+            },
+            {
+              "description": "A short, uncancelled bound right click in camera mode. Nonbubbling, noncomposed and noncancelable; positions are release canvas CSS pixels.",
+              "name": "cinema-viewer-contextmenu"
+            },
+            {
+              "description": "Progress for the current source load; no model is published until completion.",
+              "name": "model-load-progress"
+            },
+            {
+              "description": "Catalog event model.dropped.",
+              "name": "model-dropped"
+            },
+            {
+              "description": "Catalog event model.load_failed.",
+              "name": "model-load-failed"
+            },
+            {
+              "description": "Catalog event model.loaded.",
+              "name": "model-loaded"
+            },
+            {
+              "description": "Catalog event render.failed.",
+              "name": "render-failed"
+            },
+            {
+              "description": "Catalog event render.lost.",
+              "name": "render-lost"
+            },
+            {
+              "description": "Catalog event render.restored.",
+              "name": "render-restored"
+            },
+            {
+              "description": "Catalog event viewer.camera_changed.",
+              "name": "viewer-camera-changed"
+            }
+          ],
+          "kind": "class",
+          "members": [
+            {
+              "description": "Resolves when startup finishes.",
+              "kind": "field",
+              "name": "ready",
+              "readonly": true
+            },
+            {
+              "description": "The validated device record, or null before startup.",
+              "kind": "field",
+              "name": "capabilities",
+              "readonly": true
+            },
+            {
+              "description": "Adapter record and the last failure.",
+              "kind": "field",
+              "name": "diagnostics",
+              "readonly": true
+            },
+            {
+              "description": "Warnings of the last recovery replay.",
+              "kind": "field",
+              "name": "recoveryWarnings",
+              "readonly": true
+            },
+            {
+              "description": "Base URL of the package files; set before connection.",
+              "kind": "field",
+              "name": "assetBase",
+              "readonly": false
+            },
+            {
+              "description": "Canvas right-click policy: camera cancels menus for bound chords; browser keeps native menus. Pre-connection assignment wins over the startup attribute; later valid edits win in time order. Invalid assignments throw InvalidValue.",
+              "kind": "field",
+              "name": "contextMenu",
+              "readonly": false
+            },
+            {
+              "description": "Read the effective graphics configuration of a viewer without rendering. Uninitialized, pending, recovering and failed states answer with a null configuration; the getter answers during recovery.",
+              "kind": "method",
+              "name": "getGraphics"
+            },
+            {
+              "description": "Read live events.",
+              "kind": "method",
+              "name": "readEvents"
+            },
+            {
+              "description": "Read live events.",
+              "kind": "method",
+              "name": "subscribeEvents"
+            },
+            {
+              "description": "Read live events.",
+              "kind": "method",
+              "name": "unsubscribeEvents"
+            },
+            {
+              "description": "Read the current live camera.",
+              "kind": "method",
+              "name": "getCamera"
+            },
+            {
+              "description": "Move a viewer's live camera to a named view or direction, framed on a target, or to an exact camera state; return the resolved camera.",
+              "kind": "method",
+              "name": "setCamera"
+            },
+            {
+              "description": "Start or stop explicit camera spin at the current pose.",
+              "kind": "method",
+              "name": "setSpin"
+            },
+            {
+              "description": "Stop camera motion and discard stale input.",
+              "kind": "method",
+              "name": "stop"
+            },
+            {
+              "description": "Read all resolved attributes and control state together.",
+              "kind": "method",
+              "name": "getAttributes"
+            },
+            {
+              "description": "Set viewer CSS dimensions and DPR.",
+              "kind": "method",
+              "name": "resize"
+            },
+            {
+              "description": "Apply a validated attribute patch and return resolved state.",
+              "kind": "method",
+              "name": "setAttributes"
+            },
+            {
+              "description": "Set navigation preferences without moving the camera.",
+              "kind": "method",
+              "name": "setInput"
+            }
+          ],
+          "name": "CinemaViewerElement",
+          "tagName": "cinema-viewer"
+        }
+      ],
+      "exports": [
+        {
+          "declaration": {
+            "module": "viewer.mjs",
+            "name": "CinemaViewerElement"
+          },
+          "kind": "custom-element-definition",
+          "name": "cinema-viewer"
+        }
+      ],
+      "kind": "javascript-module",
+      "path": "viewer.mjs"
+    }
+  ],
+  "schemaVersion": "2.1.0"
+}

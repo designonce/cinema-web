@@ -1,0 +1,12 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties":false,
+  "properties":{
+    "artifact_version":{"type":"string"},
+    "builds":{"items":{"additionalProperties":false,"properties":{"backend":{"enum":["webgpu","webgl2"]},"catalog_hash":{"type":"string"},"entry":{"description":"Module path relative to this build's path, not the release root.","type":"string"},"input_kinds":{"items":{"type":"string"},"type":"array"},"level":{"enum":["A","B","C"]},"manifest":{"additionalProperties":false,"properties":{"bytes":{"minimum":0,"type":"integer"},"sha256":{"pattern":"^[0-9a-f]{64}$","type":"string"}},"required":["bytes","sha256"],"type":"object"},"path":{"type":"string"},"product":{"type":"string"},"profile":{"type":"string"},"protocol_version":{"minimum":1,"type":"integer"},"render_package_version":{"type":"object"},"requires":{"type":"object"},"transfer":{"type":"object"}},"required":["product","profile","level","backend","input_kinds","path","entry","requires","manifest","catalog_hash","protocol_version","render_package_version","transfer"],"type":"object"},"type":"array"},
+    "index_version":{"const":1},
+    "loader":{"const":"loader/choose.mjs"}
+  },
+  "required":["index_version","artifact_version","loader","builds"],
+  "type":"object"
+}
